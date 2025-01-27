@@ -1,337 +1,388 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NBA Analytics Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>NBA Analytics Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #1a365d;
-            --secondary-color: #2d3748;
-            --accent-color: #4299e1;
-            --success-color: #48bb78;
-            --warning-color: #ecc94b;
-            --danger-color: #f56565;
+            --primary-bg: #151515;
+            --secondary-bg: #1d1d1d;
+            --header-bg: #222222;
+            --card-bg: #2a2a2a;
+            --accent-color: #2f7deb;
+            --text-primary: #ffffff;
+            --text-secondary: #999999;
+            --border-color: #333333;
+            --success-color: #30c563;
+            --warning-color: #f0c419;
+            --danger-color: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7fafc;
-            color: #2d3748;
-        }
-
-        .dashboard-container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .games-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .game-card {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .player-stats {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .trend-positive {
-            color: var(--success-color);
-        }
-
-        .trend-negative {
-            color: var(--danger-color);
-        }
-
-        .nav-tabs {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
             display: flex;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 1.5rem;
         }
 
-        .nav-tab {
-            padding: 0.75rem 1.5rem;
+        /* Menu Lateral (estilo SofaScore) */
+        .sidebar {
+            width: 240px;
+            background-color: var(--secondary-bg);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            border-right: 1px solid var(--border-color);
+            padding-top: 60px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-menu li:hover {
+            background-color: var(--card-bg);
+        }
+
+        .sidebar-menu li.active {
+            background-color: var(--card-bg);
+            border-left: 3px solid var(--accent-color);
+        }
+
+        /* Conteúdo Principal */
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            min-height: 100vh;
+        }
+
+        /* Cabeçalho (estilo SofaScore) */
+        .header {
+            background-color: var(--header-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .upcoming-games {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .game-pill {
+            background-color: var(--card-bg);
+            padding: 8px 15px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .game-pill:hover {
+            background-color: var(--accent-color);
+        }
+
+        /* Cards de Jogos (estilo SofaScore) */
+        .game-card {
+            background-color: var(--card-bg);
+            margin: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .game-header {
+            padding: 15px;
+            background-color: var(--secondary-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .team-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .team-logo {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+
+        .team-name {
+            font-weight: 500;
+        }
+
+        /* Abas (estilo SofaScore) */
+        .tabs {
+            display: flex;
+            background-color: var(--secondary-bg);
+            padding: 0 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 15px 20px;
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            transition: all 0.2s;
         }
 
-        .nav-tab.active {
+        .tab.active {
             border-bottom-color: var(--accent-color);
             color: var(--accent-color);
         }
 
-        .prop-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
+        /* Props e Odds */
+        .props-container {
+            padding: 15px;
         }
 
         .prop-card {
-            background: #f8fafc;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            border: 1px solid #e2e8f0;
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 15px;
+            align-items: center;
         }
 
-        .value-indicator {
-            width: 8px;
-            height: 8px;
+        .prop-player {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            display: inline-block;
-            margin-right: 0.5rem;
+            background-color: var(--border-color);
         }
 
-        .value-high {
-            background-color: var(--success-color);
-        }
-
-        .value-medium {
-            background-color: var(--warning-color);
-        }
-
-        .value-low {
-            background-color: var(--danger-color);
-        }
-
-        .progress-bar {
-            height: 4px;
-            background: #e2e8f0;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--accent-color);
-            transition: width 0.3s ease;
-        }
-
-        .player-card {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        .odds-button {
+            background-color: var(--card-bg);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: background-color 0.2s;
         }
 
-        .player-card:hover {
-            transform: translateY(-2px);
+        .odds-button:hover {
+            background-color: var(--accent-color);
         }
 
-        .chart-container {
-            height: 300px;
-            margin-bottom: 1.5rem;
+        /* Estatísticas (estilo SofaScore) */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 15px;
         }
 
+        .stat-card {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Responsividade */
         @media (max-width: 768px) {
-            .dashboard-container {
-                padding: 1rem;
+            .sidebar {
+                width: 60px;
             }
 
-            .stats-grid {
-                grid-template-columns: 1fr;
+            .sidebar-menu span {
+                display: none;
             }
 
-            .games-container {
-                grid-template-columns: 1fr;
+            .main-content {
+                margin-left: 60px;
+            }
+
+            .prop-card {
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">NBA Analytics Dashboard</h1>
-            <p class="text-gray-600">Análise Profissional de Props e Estatísticas</p>
-        </header>
+    <!-- Menu Lateral (estilo SofaScore) -->
+    <nav class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="active">
+                <i class="fas fa-basketball-ball"></i>
+                <span>NBA</span>
+            </li>
+            <li>
+                <i class="fas fa-chart-line"></i>
+                <span>Análises</span>
+            </li>
+            <li>
+                <i class="fas fa-user"></i>
+                <span>Jogadores</span>
+            </li>
+            <li>
+                <i class="fas fa-trophy"></i>
+                <span>Classificação</span>
+            </li>
+            <li>
+                <i class="fas fa-history"></i>
+                <span>Histórico</span>
+            </li>
+        </ul>
+    </nav>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3 class="text-lg font-semibold mb-2">Jogos Hoje</h3>
-                <div class="text-3xl font-bold text-blue-600">{{ games|length }}</div>
-                <div class="text-sm text-gray-500">Oportunidades analisadas</div>
-            </div>
-            <div class="stat-card">
-                <h3 class="text-lg font-semibold mb-2">Props com Valor</h3>
-                <div class="text-3xl font-bold text-green-600">{{ opportunities|length }}</div>
-                <div class="text-sm text-gray-500">Acima do threshold</div>
-            </div>
-            <div class="stat-card">
-                <h3 class="text-lg font-semibold mb-2">ROI Médio</h3>
-                <div class="text-3xl font-bold text-purple-600">{{ "%.1f"|format(games|map(attribute='value_bet')|list|sum / games|length) }}%</div>
-                <div class="text-sm text-gray-500">Retorno esperado</div>
-            </div>
-        </div>
-
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="showTab('games')">Jogos</div>
-            <div class="nav-tab" onclick="showTab('players')">Jogadores</div>
-            <div class="nav-tab" onclick="showTab('analysis')">Análise</div>
-        </div>
-
-        <div id="games-tab" class="tab-content">
-            <div class="games-container">
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <!-- Cabeçalho com Próximos Jogos -->
+        <header class="header">
+            <div class="upcoming-games">
                 {% for game in games %}
-                <div class="game-card">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold">{{ game.home }} vs {{ game.away }}</h3>
-                        <span class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
-                            {{ game.time.strftime('%H:%M') }}
-                        </span>
-                    </div>
-
-                    {% for player, props in game.props.items() %}
-                    <div class="player-card" onclick="showPlayerDetails('{{ player }}')">
-                        <h4 class="text-lg font-semibold mb-2">{{ player }}</h4>
-                        <div class="prop-grid">
-                            {% for prop_type, prop_data in props.items() %}
-                            <div class="prop-card">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="font-medium">{{ prop_type|title }}</span>
-                                    <span class="text-sm">
-                                        <span class="value-indicator {{ 'value-high' if prop_data.analysis.ev > 10 else 'value-medium' if prop_data.analysis.ev > 5 else 'value-low' }}"></span>
-                                        {{ prop_data.line }}
-                                    </span>
-                                </div>
-                                <div class="text-sm text-gray-600 mb-2">
-                                    Média: {{ prop_data.avg }} | EV: {{ prop_data.analysis.ev }}%
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: {{ prop_data.analysis.confidence }}%"></div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endfor %}
+                <div class="game-pill">
+                    <img src="/static/logos/{{ game.home.lower().replace(' ', '_') }}.png" class="team-logo" alt="{{ game.home }}">
+                    <span>vs</span>
+                    <img src="/static/logos/{{ game.away.lower().replace(' ', '_') }}.png" class="team-logo" alt="{{ game.away }}">
+                    <span>{{ game.time.strftime('%H:%M') }}</span>
                 </div>
                 {% endfor %}
             </div>
+        </header>
+
+        <!-- Abas -->
+        <div class="tabs">
+            <div class="tab active">Odds</div>
+            <div class="tab">Props</div>
+            <div class="tab">Estatísticas</div>
+            <div class="tab">H2H</div>
         </div>
 
-        <div id="players-tab" class="tab-content hidden">
-            <div class="player-stats">
-                <h3 class="text-xl font-semibold mb-4">Análise de Jogadores</h3>
-                <div class="chart-container" id="player-chart"></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Estatísticas detalhadas do jogador serão carregadas aqui -->
+        <!-- Jogos e Props -->
+        {% for game in games %}
+        <div class="game-card">
+            <div class="game-header">
+                <div class="team-info">
+                    <img src="/static/logos/{{ game.home.lower().replace(' ', '_') }}.png" class="team-logo" alt="{{ game.home }}">
+                    <span class="team-name">{{ game.home }}</span>
+                </div>
+                <div class="game-time">
+                    {% if game.status == 'Ao Vivo' %}
+                    <span class="live-badge">AO VIVO</span>
+                    {% else %}
+                    {{ game.time.strftime('%H:%M') }}
+                    {% endif %}
+                </div>
+                <div class="team-info">
+                    <span class="team-name">{{ game.away }}</span>
+                    <img src="/static/logos/{{ game.away.lower().replace(' ', '_') }}.png" class="team-logo" alt="{{ game.away }}">
                 </div>
             </div>
-        </div>
 
-        <div id="analysis-tab" class="tab-content hidden">
-            <div class="player-stats">
-                <h3 class="text-xl font-semibold mb-4">Análise de Tendências</h3>
-                <div class="chart-container" id="trends-chart"></div>
-                <!-- Análises adicionais serão carregadas aqui -->
+            <div class="props-container">
+                {% for player, props in game.props.items() %}
+                {% for prop_type, prop_data in props.items() %}
+                <div class="prop-card">
+                    <div class="prop-player">
+                        <div class="player-avatar"></div>
+                        <div>
+                            <div class="player-name">{{ player }}</div>
+                            <div class="prop-type">{{ prop_type|title }}</div>
+                        </div>
+                    </div>
+                    <div class="prop-line">
+                        <div class="prop-value">{{ prop_data.line }}</div>
+                        <div class="prop-trend {{ 'trend-up' if prop_data.analysis.ev > 5 else 'trend-down' }}">
+                            {{ "%.1f"|format(prop_data.analysis.ev) }}% EV
+                        </div>
+                    </div>
+                    <div class="odds-button">
+                        Over {{ prop_data.over_odds }}
+                    </div>
+                    <div class="odds-button">
+                        Under {{ prop_data.under_odds }}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endfor %}
             </div>
         </div>
-    </div>
+        {% endfor %}
+
+        <!-- Estatísticas -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">85%</div>
+                <div class="stat-label">Acertos Over/Under</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">+12.5</div>
+                <div class="stat-label">ROI Médio</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">28</div>
+                <div class="stat-label">Props Analisadas</div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        function showTab(tabName) {
-            // Esconde todas as tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.add('hidden');
+        // Alternar entre abas
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
             });
-            
-            // Remove classe active de todas as tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
+        });
+
+        // Alternar itens do menu
+        document.querySelectorAll('.sidebar-menu li').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.sidebar-menu li').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
             });
-            
-            // Mostra a tab selecionada
-            document.getElementById(tabName + '-tab').classList.remove('hidden');
-            
-            // Adiciona classe active na tab clicada
-            event.target.classList.add('active');
-        }
+        });
 
-        function showPlayerDetails(playerName) {
-            // Implementar visualização detalhada do jogador
-            console.log('Mostrar detalhes do jogador:', playerName);
-        }
-
-        // Atualiza a página a cada minuto
-        setInterval(function() {
+        // Atualização automática
+        setInterval(() => {
             location.reload();
         }, 60000);
-
-        // Exemplo de gráfico com Plotly
-        const playerData = {
-            x: ['Pontos', 'Rebotes', 'Assistências'],
-            y: [25.5, 7.5, 6.5],
-            type: 'bar',
-            marker: {
-                color: '#4299e1'
-            }
-        };
-
-        Plotly.newPlot('player-chart', [playerData], {
-            margin: { t: 20, r: 20, l: 40, b: 40 },
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            yaxis: {
-                gridcolor: '#e2e8f0'
-            }
-        });
-
-        // Exemplo de gráfico de tendências
-        const trendsData = {
-            x: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai'],
-            y: [65, 70, 68, 72, 75],
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: {
-                color: '#48bb78'
-            }
-        };
-
-        Plotly.newPlot('trends-chart', [trendsData], {
-            margin: { t: 20, r: 20, l: 40, b: 40 },
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            yaxis: {
-                gridcolor: '#e2e8f0'
-            }
-        });
     </script>
 </body>
 </html>
