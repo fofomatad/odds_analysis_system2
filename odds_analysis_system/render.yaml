@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: odds-analysis-system
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --config gunicorn_config.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: ENVIRONMENT
+        value: production
+      - key: UPDATE_INTERVAL
+        value: 30
+      - key: CONFIDENCE_THRESHOLD
+        value: 75
+      - key: VALUE_THRESHOLD
+        value: 5
+    autoDeploy: true
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - app.py
+        - requirements.txt
+        - templates/**
+        - static/**
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+      targetMemoryPercent: 80
+      targetCPUPercent: 80
+
+  - type: redis
+    name: odds-cache
+    ipAllowList: []
+    plan: free
+    maxmemoryPolicy: volatile-lru
