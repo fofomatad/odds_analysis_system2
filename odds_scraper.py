@@ -1,10 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import logging
 import time
+import json
 
 class NBAOddsScraper:
     def __init__(self):
@@ -14,155 +15,171 @@ class NBAOddsScraper:
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
         self.logger = logging.getLogger(__name__)
 
-    def get_odds_from_oddsportal(self):
-        """Coleta odds do OddsPortal (exemplo de implementação)"""
+    def get_player_stats(self, player_name, team):
+        """Coleta estatísticas do jogador das últimas 5 partidas"""
         try:
-            url = 'https://www.oddsportal.com/basketball/usa/nba'
+            url = f'https://www.basketball-reference.com/players/{player_name[0]}/{player_name}.html'
             response = requests.get(url, headers=self.headers)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                # Implementar parser específico para o site
-                return self._parse_odds_portal(soup)
+                return self._parse_player_stats(soup)
+            return None
+        except Exception as e:
+            self.logger.error(f"Erro ao coletar stats do jogador: {str(e)}")
+            return None
+
+    def get_player_props(self, game_id):
+        """Coleta props dos jogadores para um jogo específico"""
+        try:
+            # Exemplo de dados simulados - substitua por scraping real
+            props = {
+                'LeBron James': {
+                    'points': {'line': 25.5, 'over_odds': 1.87, 'under_odds': 1.87, 
+                             'last_5': [28, 32, 25, 27, 30], 'avg': 28.4,
+                             'matchup_rating': 8.5},
+                    'rebounds': {'line': 7.5, 'over_odds': 1.95, 'under_odds': 1.85,
+                               'last_5': [8, 7, 9, 6, 8], 'avg': 7.6,
+                               'matchup_rating': 7.8},
+                    'assists': {'line': 6.5, 'over_odds': 1.90, 'under_odds': 1.90,
+                              'last_5': [7, 8, 6, 7, 5], 'avg': 6.6,
+                              'matchup_rating': 8.0}
+                },
+                'Stephen Curry': {
+                    'points': {'line': 28.5, 'over_odds': 1.85, 'under_odds': 1.95,
+                             'last_5': [32, 29, 35, 27, 31], 'avg': 30.8,
+                             'matchup_rating': 9.0},
+                    'rebounds': {'line': 5.5, 'over_odds': 1.87, 'under_odds': 1.87,
+                               'last_5': [4, 6, 5, 7, 5], 'avg': 5.4,
+                               'matchup_rating': 7.5},
+                    'assists': {'line': 5.5, 'over_odds': 1.90, 'under_odds': 1.90,
+                              'last_5': [6, 7, 4, 6, 5], 'avg': 5.6,
+                              'matchup_rating': 8.2}
+                }
+            }
+            return props
+        except Exception as e:
+            self.logger.error(f"Erro ao coletar props: {str(e)}")
+            return {}
+
+    def analyze_prop_bet(self, prop_data):
+        """Analisa uma prop bet específica usando a estratégia Holzhauer"""
+        try:
+            line = prop_data['line']
+            avg = prop_data['avg']
+            last_5 = prop_data['last_5']
+            matchup_rating = prop_data['matchup_rating']
+            
+            # Calcula tendência
+            trend = sum(1 for x in last_5 if x > line) / 5
+            
+            # Calcula valor esperado
+            ev = self._calculate_prop_ev(avg, line, prop_data['over_odds'])
+            
+            # Calcula confiança
+            confidence = self._calculate_prop_confidence(trend, matchup_rating, avg, line)
+            
+            # Determina recomendação
+            if ev > 0.1 and confidence > 80:
+                recommendation = "💰 FORTE VALOR"
+            elif ev > 0.05 and confidence > 70:
+                recommendation = "✅ VALOR MODERADO"
             else:
-                self.logger.error(f"Erro ao acessar OddsPortal: {response.status_code}")
-                return []
+                recommendation = "⚠️ PASSAR"
+            
+            return {
+                'ev': round(ev * 100, 1),
+                'confidence': round(confidence, 1),
+                'trend': f"{trend*100:.0f}%",
+                'recommendation': recommendation,
+                'analysis': self._get_prop_analysis(avg, line, last_5, matchup_rating)
+            }
         except Exception as e:
-            self.logger.error(f"Erro no scraping: {str(e)}")
-            return []
+            self.logger.error(f"Erro na análise de prop: {str(e)}")
+            return None
 
-    def get_reddit_sentiment(self, team):
-        """Coleta sentimento do Reddit r/nba"""
-        try:
-            url = f'https://www.reddit.com/r/nba/search.json?q={team}&restrict_sr=1&sort=new'
-            response = requests.get(url, headers=self.headers)
-            if response.status_code == 200:
-                posts = response.json()['data']['children']
-                sentiments = []
-                for post in posts[:5]:  # Analisa os 5 posts mais recentes
-                    text = post['data']['title'] + ' ' + post['data']['selftext']
-                    sentiment = self.sentiment_analyzer.polarity_scores(text)['compound']
-                    sentiments.append(sentiment)
-                return sum(sentiments) / len(sentiments) if sentiments else 0
-            return 0
-        except Exception as e:
-            self.logger.error(f"Erro ao coletar sentimento: {str(e)}")
-            return 0
+    def _calculate_prop_ev(self, avg, line, odds):
+        """Calcula o valor esperado de uma prop"""
+        prob_over = 0.5 + (avg - line) / (2 * line)  # Ajusta probabilidade com base na média
+        return (prob_over * (odds - 1)) - (1 - prob_over)
 
-    def get_injury_news(self, team):
-        """Coleta informações de lesões do RotoWire"""
-        try:
-            url = f'https://www.rotowire.com/basketball/team/injuries.php?team={team}'
-            response = requests.get(url, headers=self.headers)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                # Implementar parser específico para o site
-                return self._parse_injury_news(soup)
-            return "Sem informações"
-        except Exception as e:
-            self.logger.error(f"Erro ao coletar lesões: {str(e)}")
-            return "Erro ao coletar"
-
-    def _parse_odds_portal(self, soup):
-        """Parser específico para OddsPortal"""
-        games = []
-        try:
-            # Implementar parser específico para o site
-            # Este é um exemplo simplificado
-            game_rows = soup.find_all('tr', {'class': 'deactivate'})
-            for row in game_rows:
-                teams = row.find('td', {'class': 'name'}).text.strip().split(' - ')
-                if len(teams) == 2:
-                    home_team, away_team = teams
-                    odds = row.find_all('td', {'class': 'odds'})
-                    if odds:
-                        games.append({
-                            'home_team': home_team,
-                            'away_team': away_team,
-                            'home_odds': float(odds[0].text),
-                            'away_odds': float(odds[1].text),
-                            'timestamp': datetime.now()
-                        })
-        except Exception as e:
-            self.logger.error(f"Erro no parsing: {str(e)}")
-        return games
-
-    def _parse_injury_news(self, soup):
-        """Parser específico para RotoWire"""
-        try:
-            injuries = soup.find_all('div', {'class': 'injury'})
-            return [injury.text.strip() for injury in injuries]
-        except Exception as e:
-            self.logger.error(f"Erro no parsing de lesões: {str(e)}")
-            return []
-
-    def analyze_value_bet(self, implied_prob, true_prob, odds):
-        """Análise de value bet usando a estratégia Holzhauer"""
-        ev = (true_prob * odds) - 1
-        kelly = self._calculate_kelly(true_prob, odds)
-        confidence = self._calculate_confidence(implied_prob, true_prob)
-        
-        return {
-            'ev': ev,
-            'kelly': kelly,
-            'confidence': confidence
-        }
-
-    def _calculate_kelly(self, prob, odds):
-        """Implementação do Critério de Kelly"""
-        q = 1 - prob
-        b = odds - 1
-        f = (b * prob - q) / b
-        return max(0, min(0.05, f))  # Limita a 5% da banca
-
-    def _calculate_confidence(self, implied_prob, true_prob):
-        """Calcula confiança baseada na diferença entre probabilidades"""
-        diff = abs(implied_prob - true_prob)
+    def _calculate_prop_confidence(self, trend, matchup_rating, avg, line):
+        """Calcula a confiança em uma prop"""
         base_confidence = 70
         
-        if diff > 0.1:
-            confidence_adj = 15
-        elif diff > 0.05:
-            confidence_adj = 10
+        # Ajuste por tendência
+        trend_adj = (trend - 0.5) * 20
+        
+        # Ajuste por matchup
+        matchup_adj = (matchup_rating - 7) * 5
+        
+        # Ajuste por diferença da média
+        avg_diff = abs(avg - line) / line
+        avg_adj = avg_diff * 20
+        
+        return min(95, max(60, base_confidence + trend_adj + matchup_adj + avg_adj))
+
+    def _get_prop_analysis(self, avg, line, last_5, matchup_rating):
+        """Gera análise detalhada da prop"""
+        analysis = []
+        
+        if avg > line:
+            analysis.append(f"Média ({avg:.1f}) acima da linha ({line})")
         else:
-            confidence_adj = 5
+            analysis.append(f"Média ({avg:.1f}) abaixo da linha ({line})")
             
-        return min(95, base_confidence + confidence_adj)
+        hits = sum(1 for x in last_5 if x > line)
+        analysis.append(f"Bateu em {hits}/5 últimos jogos")
+        
+        if matchup_rating >= 8:
+            analysis.append("Ótimo matchup para esta prop")
+        elif matchup_rating >= 7:
+            analysis.append("Matchup favorável")
+        else:
+            analysis.append("Matchup difícil")
+            
+        return " | ".join(analysis)
 
     def get_nba_games(self):
-        """Coleta e analisa todos os dados para jogos da NBA"""
-        games = self.get_odds_from_oddsportal()
-        analyzed_games = []
+        """Coleta jogos e props da NBA"""
+        games = []
         
-        for game in games:
-            home_sentiment = self.get_reddit_sentiment(game['home_team'])
-            away_sentiment = self.get_reddit_sentiment(game['away_team'])
+        # Simulação de jogos - substitua por scraping real
+        sample_games = [
+            {
+                'id': 'LAL-GSW-20250127',
+                'home': 'Lakers',
+                'away': 'Warriors',
+                'time': datetime.now() + timedelta(hours=2),
+                'status': 'Próximo'
+            },
+            {
+                'id': 'BOS-MIL-20250127',
+                'home': 'Celtics',
+                'away': 'Bucks',
+                'time': datetime.now() + timedelta(minutes=30),
+                'status': 'Em breve'
+            }
+        ]
+        
+        for game in sample_games:
+            props = self.get_player_props(game['id'])
+            analyzed_props = {}
             
-            home_injuries = self.get_injury_news(game['home_team'])
-            away_injuries = self.get_injury_news(game['away_team'])
+            for player, player_props in props.items():
+                analyzed_props[player] = {}
+                for prop_type, prop_data in player_props.items():
+                    analysis = self.analyze_prop_bet(prop_data)
+                    if analysis:
+                        analyzed_props[player][prop_type] = {
+                            **prop_data,
+                            'analysis': analysis
+                        }
             
-            # Calcula probabilidades ajustadas com base no sentimento
-            implied_prob_home = 1 / game['home_odds']
-            sentiment_adj = (home_sentiment - away_sentiment) * 0.05
-            true_prob_home = min(0.95, max(0.05, implied_prob_home + sentiment_adj))
-            
-            # Análise de value bet
-            value_analysis = self.analyze_value_bet(implied_prob_home, true_prob_home, game['home_odds'])
-            
-            analyzed_games.append({
-                'game': f"{game['home_team']} vs {game['away_team']}",
-                'start_time': game['timestamp'],
-                'odds': game['home_odds'],
-                'implied_prob': f"{implied_prob_home*100:.1f}%",
-                'true_prob': f"{true_prob_home*100:.1f}%",
-                'value_bet': round(value_analysis['ev'] * 100, 1),
-                'kelly_stake': f"{value_analysis['kelly']*100:.1f}%",
-                'confidence': value_analysis['confidence'],
-                'home_sentiment': round(home_sentiment, 2),
-                'away_sentiment': round(away_sentiment, 2),
-                'injuries': f"Home: {home_injuries}, Away: {away_injuries}"
+            games.append({
+                **game,
+                'props': analyzed_props
             })
             
-            # Respeita rate limits
-            time.sleep(1)
-        
-        return analyzed_games
+            time.sleep(1)  # Respeita rate limits
+            
+        return games
