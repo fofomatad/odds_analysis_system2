@@ -1,133 +1,337 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NBA Props Analysis - Estratégia Holzhauer</title>
+    <title>NBA Analytics Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        /* ... (mantenha os estilos anteriores) ... */
-        
-        .prop-card {
-            background: #2d2d2d;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border-left: 4px solid #4CAF50;
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2d3748;
+            --accent-color: #4299e1;
+            --success-color: #48bb78;
+            --warning-color: #ecc94b;
+            --danger-color: #f56565;
         }
-        
-        .player-name {
-            color: #4CAF50;
-            font-size: 1.2em;
-            font-weight: bold;
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+            color: #2d3748;
         }
-        
-        .prop-details {
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .games-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .player-stats {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .trend-positive {
+            color: var(--success-color);
+        }
+
+        .trend-negative {
+            color: var(--danger-color);
+        }
+
+        .nav-tabs {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            border-bottom-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .prop-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 10px;
+            gap: 1rem;
         }
-        
-        .prop-item {
-            background: #404040;
-            padding: 10px;
-            border-radius: 5px;
+
+        .prop-card {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
         }
-        
-        .prop-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
+
+        .value-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
         }
-        
-        .prop-stats {
-            font-size: 0.9em;
-            color: #aaa;
+
+        .value-high {
+            background-color: var(--success-color);
         }
-        
-        .prop-recommendation {
-            font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 3px;
+
+        .value-medium {
+            background-color: var(--warning-color);
         }
-        
-        .strong-value {
-            background-color: #4CAF50;
-            color: white;
+
+        .value-low {
+            background-color: var(--danger-color);
         }
-        
-        .moderate-value {
-            background-color: #FFC107;
-            color: black;
+
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
         }
-        
-        .no-value {
-            background-color: #f44336;
-            color: white;
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            transition: width 0.3s ease;
         }
-        
-        .game-time {
-            color: #FFC107;
-            font-weight: bold;
+
+        .player-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: transform 0.2s;
         }
-        
-        .live-indicator {
-            color: #f44336;
-            animation: blink 1s infinite;
+
+        .player-card:hover {
+            transform: translateY(-2px);
         }
-        
-        @keyframes blink {
-            50% { opacity: 0; }
+
+        .chart-container {
+            height: 300px;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .games-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏀 NBA Props Analysis</h1>
-            <p>Estratégia James Holzhauer - Props em Tempo Real</p>
+    <div class="dashboard-container">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">NBA Analytics Dashboard</h1>
+            <p class="text-gray-600">Análise Profissional de Props e Estatísticas</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 class="text-lg font-semibold mb-2">Jogos Hoje</h3>
+                <div class="text-3xl font-bold text-blue-600">{{ games|length }}</div>
+                <div class="text-sm text-gray-500">Oportunidades analisadas</div>
+            </div>
+            <div class="stat-card">
+                <h3 class="text-lg font-semibold mb-2">Props com Valor</h3>
+                <div class="text-3xl font-bold text-green-600">{{ opportunities|length }}</div>
+                <div class="text-sm text-gray-500">Acima do threshold</div>
+            </div>
+            <div class="stat-card">
+                <h3 class="text-lg font-semibold mb-2">ROI Médio</h3>
+                <div class="text-3xl font-bold text-purple-600">{{ "%.1f"|format(games|map(attribute='value_bet')|list|sum / games|length) }}%</div>
+                <div class="text-sm text-gray-500">Retorno esperado</div>
+            </div>
         </div>
 
-        {% for game in games %}
-        <div class="card">
-            <div class="game-header">
-                <h2>{{ game.home }} vs {{ game.away }}</h2>
-                <span class="game-time {% if game.status == 'Ao Vivo' %}live-indicator{% endif %}">
-                    {{ game.status }}: {{ game.time.strftime('%H:%M') }}
-                </span>
-            </div>
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showTab('games')">Jogos</div>
+            <div class="nav-tab" onclick="showTab('players')">Jogadores</div>
+            <div class="nav-tab" onclick="showTab('analysis')">Análise</div>
+        </div>
 
-            {% for player, props in game.props.items() %}
-            <div class="prop-card">
-                <div class="player-name">{{ player }}</div>
-                <div class="prop-details">
-                    {% for prop_type, prop_data in props.items() %}
-                    <div class="prop-item">
-                        <div class="prop-header">
-                            <span>{{ prop_type|title }}</span>
-                            <span class="prop-recommendation {{ 'strong-value' if 'FORTE' in prop_data.analysis.recommendation else 'moderate-value' if 'MODERADO' in prop_data.analysis.recommendation else 'no-value' }}">
-                                {{ prop_data.analysis.recommendation }}
-                            </span>
-                        </div>
-                        <div>Linha: {{ prop_data.line }} (O{{ prop_data.over_odds }}/U{{ prop_data.under_odds }})</div>
-                        <div class="prop-stats">
-                            <div>Média: {{ prop_data.avg }} | Últimos 5: {{ prop_data.last_5|join(', ') }}</div>
-                            <div>EV: {{ prop_data.analysis.ev }}% | Confiança: {{ prop_data.analysis.confidence }}%</div>
-                            <div>{{ prop_data.analysis.analysis }}</div>
+        <div id="games-tab" class="tab-content">
+            <div class="games-container">
+                {% for game in games %}
+                <div class="game-card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">{{ game.home }} vs {{ game.away }}</h3>
+                        <span class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            {{ game.time.strftime('%H:%M') }}
+                        </span>
+                    </div>
+
+                    {% for player, props in game.props.items() %}
+                    <div class="player-card" onclick="showPlayerDetails('{{ player }}')">
+                        <h4 class="text-lg font-semibold mb-2">{{ player }}</h4>
+                        <div class="prop-grid">
+                            {% for prop_type, prop_data in props.items() %}
+                            <div class="prop-card">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-medium">{{ prop_type|title }}</span>
+                                    <span class="text-sm">
+                                        <span class="value-indicator {{ 'value-high' if prop_data.analysis.ev > 10 else 'value-medium' if prop_data.analysis.ev > 5 else 'value-low' }}"></span>
+                                        {{ prop_data.line }}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-600 mb-2">
+                                    Média: {{ prop_data.avg }} | EV: {{ prop_data.analysis.ev }}%
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ prop_data.analysis.confidence }}%"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-        {% endfor %}
+
+        <div id="players-tab" class="tab-content hidden">
+            <div class="player-stats">
+                <h3 class="text-xl font-semibold mb-4">Análise de Jogadores</h3>
+                <div class="chart-container" id="player-chart"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Estatísticas detalhadas do jogador serão carregadas aqui -->
+                </div>
+            </div>
+        </div>
+
+        <div id="analysis-tab" class="tab-content hidden">
+            <div class="player-stats">
+                <h3 class="text-xl font-semibold mb-4">Análise de Tendências</h3>
+                <div class="chart-container" id="trends-chart"></div>
+                <!-- Análises adicionais serão carregadas aqui -->
+            </div>
+        </div>
     </div>
 
     <script>
-        // Atualiza a página a cada 30 segundos
+        function showTab(tabName) {
+            // Esconde todas as tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove classe active de todas as tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostra a tab selecionada
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Adiciona classe active na tab clicada
+            event.target.classList.add('active');
+        }
+
+        function showPlayerDetails(playerName) {
+            // Implementar visualização detalhada do jogador
+            console.log('Mostrar detalhes do jogador:', playerName);
+        }
+
+        // Atualiza a página a cada minuto
         setInterval(function() {
             location.reload();
-        }, 30000);
+        }, 60000);
+
+        // Exemplo de gráfico com Plotly
+        const playerData = {
+            x: ['Pontos', 'Rebotes', 'Assistências'],
+            y: [25.5, 7.5, 6.5],
+            type: 'bar',
+            marker: {
+                color: '#4299e1'
+            }
+        };
+
+        Plotly.newPlot('player-chart', [playerData], {
+            margin: { t: 20, r: 20, l: 40, b: 40 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            yaxis: {
+                gridcolor: '#e2e8f0'
+            }
+        });
+
+        // Exemplo de gráfico de tendências
+        const trendsData = {
+            x: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai'],
+            y: [65, 70, 68, 72, 75],
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: {
+                color: '#48bb78'
+            }
+        };
+
+        Plotly.newPlot('trends-chart', [trendsData], {
+            margin: { t: 20, r: 20, l: 40, b: 40 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            yaxis: {
+                gridcolor: '#e2e8f0'
+            }
+        });
     </script>
 </body>
 </html>
