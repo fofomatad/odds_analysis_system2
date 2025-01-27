@@ -1,98 +1,176 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Odds Analysis System</title>
+    <title>Odds Analysis System - Estratégia Holzhauer</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         .card {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
-            margin: 10px 0;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .opportunity {
             border-left: 4px solid #4CAF50;
+            background: #2d2d2d;
+        }
+        .high-value {
+            background-color: rgba(76, 175, 80, 0.1);
         }
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 10px;
         }
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #404040;
         }
         th {
-            background-color: #f8f9fa;
+            background-color: #404040;
+            color: #ffffff;
         }
         .header {
-            background-color: #2196F3;
+            background-color: #4CAF50;
             color: white;
             padding: 20px;
             margin-bottom: 20px;
-            border-radius: 5px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #404040;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .bet-now {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .monitor {
+            color: #FFC107;
+        }
+        .wait {
+            color: #9E9E9E;
+        }
+        .value-positive {
+            color: #4CAF50;
+        }
+        .value-negative {
+            color: #f44336;
+        }
+        @media (max-width: 1200px) {
+            table {
+                display: block;
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Odds Analysis System</h1>
-            <p>Sistema de Análise de Odds em Tempo Real</p>
+            <h1>Sistema de Análise de Odds</h1>
+            <p>Estratégia James Holzhauer - Análise em Tempo Real</p>
         </div>
 
-        <div class="card">
-            <h2>Jogos ao Vivo</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Jogos Monitorados</h3>
+                <h2>{{ games|length }}</h2>
+            </div>
+            <div class="stat-card">
+                <h3>Oportunidades</h3>
+                <h2>{{ opportunities|length }}</h2>
+            </div>
+            <div class="stat-card">
+                <h3>Valor Médio</h3>
+                <h2>{{ "%.1f"|format(games|map(attribute='value_bet')|list|sum / games|length) }}%</h2>
+            </div>
+            <div class="stat-card">
+                <h3>Confiança Média</h3>
+                <h2>{{ "%.1f"|format(games|map(attribute='confidence')|list|sum / games|length) }}%</h2>
+            </div>
+        </div>
+
+        <div class="card opportunity">
+            <h2>🔥 Oportunidades de Alto Valor</h2>
             <table>
                 <tr>
                     <th>Jogo</th>
-                    <th>Casa</th>
-                    <th>Empate</th>
-                    <th>Fora</th>
-                    <th>Confiança</th>
+                    <th>Liga</th>
+                    <th>Início</th>
+                    <th>Odds (C/E/F)</th>
                     <th>Valor</th>
+                    <th>Confiança</th>
+                    <th>Stake</th>
+                    <th>Kelly</th>
+                    <th>Status</th>
                 </tr>
-                {% for game in games %}
-                <tr>
-                    <td>{{ game.game }}</td>
-                    <td>{{ game.home_odds }}</td>
-                    <td>{{ game.draw_odds }}</td>
-                    <td>{{ game.away_odds }}</td>
-                    <td>{{ game.confidence }}%</td>
-                    <td>{{ game.value_bet }}</td>
+                {% for opp in opportunities %}
+                <tr class="high-value">
+                    <td>{{ opp.game }}</td>
+                    <td>{{ opp.league }}</td>
+                    <td>{{ opp.time_to_start }}</td>
+                    <td>{{ opp.home_odds }}/{{ opp.draw_odds }}/{{ opp.away_odds }}</td>
+                    <td class="value-positive">+{{ opp.value_bet }}%</td>
+                    <td>{{ opp.confidence }}%</td>
+                    <td>{{ opp.recommended_stake }}%</td>
+                    <td>{{ opp.kelly_criterion }}%</td>
+                    <td class="bet-now">{{ opp.bet_timing }}</td>
                 </tr>
                 {% endfor %}
             </table>
         </div>
 
-        <div class="card opportunity">
-            <h2>Oportunidades de Apostas</h2>
+        <div class="card">
+            <h2>📊 Todos os Jogos Monitorados</h2>
             <table>
                 <tr>
                     <th>Jogo</th>
-                    <th>Casa</th>
-                    <th>Empate</th>
-                    <th>Fora</th>
-                    <th>Confiança</th>
+                    <th>Liga</th>
+                    <th>Início</th>
+                    <th>Odds (C/E/F)</th>
                     <th>Valor</th>
+                    <th>Confiança</th>
+                    <th>H2H</th>
+                    <th>Movimento</th>
+                    <th>Status</th>
                 </tr>
-                {% for opp in opportunities %}
+                {% for game in games %}
                 <tr>
-                    <td>{{ opp.game }}</td>
-                    <td>{{ opp.home_odds }}</td>
-                    <td>{{ opp.draw_odds }}</td>
-                    <td>{{ opp.away_odds }}</td>
-                    <td>{{ opp.confidence }}%</td>
-                    <td>{{ opp.value_bet }}</td>
+                    <td>{{ game.game }}</td>
+                    <td>{{ game.league }}</td>
+                    <td>{{ game.time_to_start }}</td>
+                    <td>{{ game.home_odds }}/{{ game.draw_odds }}/{{ game.away_odds }}</td>
+                    <td class="{{ 'value-positive' if game.value_bet > 0 else 'value-negative' }}">
+                        {{ '+' if game.value_bet > 0 }}{{ game.value_bet }}%
+                    </td>
+                    <td>{{ game.confidence }}%</td>
+                    <td>{{ game.h2h }}</td>
+                    <td>{{ game.market_movement }}</td>
+                    <td class="{{ 'bet-now' if 'APOSTAR' in game.bet_timing else 'monitor' if 'Monitorar' in game.bet_timing else 'wait' }}">
+                        {{ game.bet_timing }}
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
