@@ -17,6 +17,32 @@ class OddsCollector:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
+    def start(self):
+        """Inicia a coleta de odds em uma thread separada"""
+        if not self.running:
+            self.running = True
+            self.thread = threading.Thread(target=self._collection_loop)
+            self.thread.daemon = True
+            self.thread.start()
+            self.logger.info("Iniciou coleta de odds")
+
+    def stop(self):
+        """Para a coleta de odds"""
+        self.running = False
+        if self.thread:
+            self.thread.join()
+            self.logger.info("Parou coleta de odds")
+
+    def _collection_loop(self):
+        """Loop principal de coleta"""
+        while self.running:
+            try:
+                self.collect_odds()
+                time.sleep(self.update_interval)
+            except Exception as e:
+                self.logger.error(f"Erro na coleta: {str(e)}")
+                time.sleep(5)  # Espera um pouco antes de tentar novamente
+
     def _generate_sample_data(self):
         """Gera dados de exemplo usando a estratégia Holzhauer"""
         games = [
@@ -134,6 +160,23 @@ class OddsCollector:
         f = (b * prob - q) / b
         return max(0, round(f * 100, 1))
 
+    def collect_odds(self):
+        """Coleta as odds e atualiza o estado interno"""
+        try:
+            odds_data = self._generate_sample_data()
+            self.current_odds = pd.DataFrame(odds_data)
+            self.last_update = datetime.now()
+            self.logger.info(f"Coletou odds para {len(odds_data)} jogos")
+        except Exception as e:
+            self.logger.error(f"Erro ao coletar odds: {str(e)}")
+
+    def get_live_games(self):
+        """Retorna os jogos ativos com suas odds"""
+        if self.current_odds.empty:
+            return []
+        
+        return self.current_odds.to_dict('records')
+
     def get_opportunities(self, confidence_threshold=75, value_threshold=3):
         """Retorna oportunidades de apostas baseadas nos critérios Holzhauer"""
         if self.current_odds.empty:
@@ -146,5 +189,3 @@ class OddsCollector:
         ]
         
         return opportunities.to_dict('records')
-
-    # ... (manter os outros métodos existentes)
