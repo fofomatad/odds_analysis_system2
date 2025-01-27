@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Odds Analysis System - Estratégia Holzhauer</title>
+    <title>NBA Odds Analysis - Estratégia Holzhauer</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -43,7 +43,7 @@
             color: #ffffff;
         }
         .header {
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #1d428a 0%, #c8102e 100%);
             color: white;
             padding: 20px;
             margin-bottom: 20px;
@@ -89,17 +89,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Sistema de Análise de Odds</h1>
+            <h1>🏀 NBA Odds Analysis System</h1>
             <p>Estratégia James Holzhauer - Análise em Tempo Real</p>
         </div>
 
         <div class="stats">
             <div class="stat-card">
-                <h3>Jogos Monitorados</h3>
+                <h3>Jogos NBA</h3>
                 <h2>{{ games|length }}</h2>
             </div>
             <div class="stat-card">
-                <h3>Oportunidades</h3>
+                <h3>Value Bets</h3>
                 <h2>{{ opportunities|length }}</h2>
             </div>
             <div class="stat-card">
@@ -113,60 +113,58 @@
         </div>
 
         <div class="card opportunity">
-            <h2>🔥 Oportunidades de Alto Valor</h2>
+            <h2>💰 Value Bets NBA</h2>
             <table>
                 <tr>
                     <th>Jogo</th>
-                    <th>Liga</th>
                     <th>Início</th>
-                    <th>Odds (C/E/F)</th>
+                    <th>Odds</th>
+                    <th>Prob. Vitória</th>
                     <th>Valor</th>
-                    <th>Confiança</th>
-                    <th>Stake</th>
-                    <th>Kelly</th>
+                    <th>Kelly %</th>
                     <th>Status</th>
+                    <th>Recomendação</th>
                 </tr>
                 {% for opp in opportunities %}
                 <tr class="high-value">
                     <td>{{ opp.game }}</td>
-                    <td>{{ opp.league }}</td>
                     <td>{{ opp.time_to_start }}</td>
-                    <td>{{ opp.home_odds }}/{{ opp.draw_odds }}/{{ opp.away_odds }}</td>
+                    <td>{{ opp.odds }}</td>
+                    <td>{{ opp.prob_acerto }}</td>
                     <td class="value-positive">+{{ opp.value_bet }}%</td>
-                    <td>{{ opp.confidence }}%</td>
-                    <td>{{ opp.recommended_stake }}%</td>
-                    <td>{{ opp.kelly_criterion }}%</td>
+                    <td>{{ opp.kelly_stake }}</td>
                     <td class="bet-now">{{ opp.bet_timing }}</td>
+                    <td>{{ opp.recommendation }}</td>
                 </tr>
                 {% endfor %}
             </table>
         </div>
 
         <div class="card">
-            <h2>📊 Todos os Jogos Monitorados</h2>
+            <h2>🏀 Todos os Jogos NBA</h2>
             <table>
                 <tr>
                     <th>Jogo</th>
-                    <th>Liga</th>
                     <th>Início</th>
-                    <th>Odds (C/E/F)</th>
+                    <th>Forma (C/F)</th>
+                    <th>Jogadores</th>
+                    <th>Odds</th>
                     <th>Valor</th>
-                    <th>Confiança</th>
-                    <th>H2H</th>
-                    <th>Movimento</th>
+                    <th>Kelly %</th>
+                    <th>Mercado</th>
                     <th>Status</th>
                 </tr>
                 {% for game in games %}
                 <tr>
                     <td>{{ game.game }}</td>
-                    <td>{{ game.league }}</td>
                     <td>{{ game.time_to_start }}</td>
-                    <td>{{ game.home_odds }}/{{ game.draw_odds }}/{{ game.away_odds }}</td>
+                    <td>{{ game.home_form }} / {{ game.away_form }}</td>
+                    <td>{{ game.key_players }}</td>
+                    <td>{{ game.odds }}</td>
                     <td class="{{ 'value-positive' if game.value_bet > 0 else 'value-negative' }}">
                         {{ '+' if game.value_bet > 0 }}{{ game.value_bet }}%
                     </td>
-                    <td>{{ game.confidence }}%</td>
-                    <td>{{ game.h2h }}</td>
+                    <td>{{ game.kelly_stake }}</td>
                     <td>{{ game.market_movement }}</td>
                     <td class="{{ 'bet-now' if 'APOSTAR' in game.bet_timing else 'monitor' if 'Monitorar' in game.bet_timing else 'wait' }}">
                         {{ game.bet_timing }}
