@@ -1,178 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NBA Odds Analysis - Estratégia Holzhauer</title>
+    <title>NBA Props Analysis - Estratégia Holzhauer</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: #ffffff;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .card {
+        /* ... (mantenha os estilos anteriores) ... */
+        
+        .prop-card {
             background: #2d2d2d;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .opportunity {
-            border-left: 4px solid #4CAF50;
-            background: #2d2d2d;
-        }
-        .high-value {
-            background-color: rgba(76, 175, 80, 0.1);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #404040;
-        }
-        th {
-            background-color: #404040;
-            color: #ffffff;
-        }
-        .header {
-            background: linear-gradient(135deg, #1d428a 0%, #c8102e 100%);
-            color: white;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: #404040;
             padding: 15px;
+            margin: 10px 0;
             border-radius: 8px;
-            text-align: center;
+            border-left: 4px solid #4CAF50;
         }
-        .bet-now {
+        
+        .player-name {
             color: #4CAF50;
+            font-size: 1.2em;
             font-weight: bold;
         }
-        .monitor {
+        
+        .prop-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .prop-item {
+            background: #404040;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .prop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .prop-stats {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        
+        .prop-recommendation {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        
+        .strong-value {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .moderate-value {
+            background-color: #FFC107;
+            color: black;
+        }
+        
+        .no-value {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .game-time {
             color: #FFC107;
+            font-weight: bold;
         }
-        .wait {
-            color: #9E9E9E;
-        }
-        .value-positive {
-            color: #4CAF50;
-        }
-        .value-negative {
+        
+        .live-indicator {
             color: #f44336;
+            animation: blink 1s infinite;
         }
-        @media (max-width: 1200px) {
-            table {
-                display: block;
-                overflow-x: auto;
-            }
+        
+        @keyframes blink {
+            50% { opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏀 NBA Odds Analysis System</h1>
-            <p>Estratégia James Holzhauer - Análise em Tempo Real</p>
+            <h1>🏀 NBA Props Analysis</h1>
+            <p>Estratégia James Holzhauer - Props em Tempo Real</p>
         </div>
 
-        <div class="stats">
-            <div class="stat-card">
-                <h3>Jogos NBA</h3>
-                <h2>{{ games|length }}</h2>
-            </div>
-            <div class="stat-card">
-                <h3>Value Bets</h3>
-                <h2>{{ opportunities|length }}</h2>
-            </div>
-            <div class="stat-card">
-                <h3>Valor Médio</h3>
-                <h2>{{ "%.1f"|format(games|map(attribute='value_bet')|list|sum / games|length) }}%</h2>
-            </div>
-            <div class="stat-card">
-                <h3>Confiança Média</h3>
-                <h2>{{ "%.1f"|format(games|map(attribute='confidence')|list|sum / games|length) }}%</h2>
-            </div>
-        </div>
-
-        <div class="card opportunity">
-            <h2>💰 Value Bets NBA</h2>
-            <table>
-                <tr>
-                    <th>Jogo</th>
-                    <th>Início</th>
-                    <th>Odds</th>
-                    <th>Prob. Vitória</th>
-                    <th>Valor</th>
-                    <th>Kelly %</th>
-                    <th>Status</th>
-                    <th>Recomendação</th>
-                </tr>
-                {% for opp in opportunities %}
-                <tr class="high-value">
-                    <td>{{ opp.game }}</td>
-                    <td>{{ opp.time_to_start }}</td>
-                    <td>{{ opp.odds }}</td>
-                    <td>{{ opp.prob_acerto }}</td>
-                    <td class="value-positive">+{{ opp.value_bet }}%</td>
-                    <td>{{ opp.kelly_stake }}</td>
-                    <td class="bet-now">{{ opp.bet_timing }}</td>
-                    <td>{{ opp.recommendation }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-
+        {% for game in games %}
         <div class="card">
-            <h2>🏀 Todos os Jogos NBA</h2>
-            <table>
-                <tr>
-                    <th>Jogo</th>
-                    <th>Início</th>
-                    <th>Forma (C/F)</th>
-                    <th>Jogadores</th>
-                    <th>Odds</th>
-                    <th>Valor</th>
-                    <th>Kelly %</th>
-                    <th>Mercado</th>
-                    <th>Status</th>
-                </tr>
-                {% for game in games %}
-                <tr>
-                    <td>{{ game.game }}</td>
-                    <td>{{ game.time_to_start }}</td>
-                    <td>{{ game.home_form }} / {{ game.away_form }}</td>
-                    <td>{{ game.key_players }}</td>
-                    <td>{{ game.odds }}</td>
-                    <td class="{{ 'value-positive' if game.value_bet > 0 else 'value-negative' }}">
-                        {{ '+' if game.value_bet > 0 }}{{ game.value_bet }}%
-                    </td>
-                    <td>{{ game.kelly_stake }}</td>
-                    <td>{{ game.market_movement }}</td>
-                    <td class="{{ 'bet-now' if 'APOSTAR' in game.bet_timing else 'monitor' if 'Monitorar' in game.bet_timing else 'wait' }}">
-                        {{ game.bet_timing }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
+            <div class="game-header">
+                <h2>{{ game.home }} vs {{ game.away }}</h2>
+                <span class="game-time {% if game.status == 'Ao Vivo' %}live-indicator{% endif %}">
+                    {{ game.status }}: {{ game.time.strftime('%H:%M') }}
+                </span>
+            </div>
+
+            {% for player, props in game.props.items() %}
+            <div class="prop-card">
+                <div class="player-name">{{ player }}</div>
+                <div class="prop-details">
+                    {% for prop_type, prop_data in props.items() %}
+                    <div class="prop-item">
+                        <div class="prop-header">
+                            <span>{{ prop_type|title }}</span>
+                            <span class="prop-recommendation {{ 'strong-value' if 'FORTE' in prop_data.analysis.recommendation else 'moderate-value' if 'MODERADO' in prop_data.analysis.recommendation else 'no-value' }}">
+                                {{ prop_data.analysis.recommendation }}
+                            </span>
+                        </div>
+                        <div>Linha: {{ prop_data.line }} (O{{ prop_data.over_odds }}/U{{ prop_data.under_odds }})</div>
+                        <div class="prop-stats">
+                            <div>Média: {{ prop_data.avg }} | Últimos 5: {{ prop_data.last_5|join(', ') }}</div>
+                            <div>EV: {{ prop_data.analysis.ev }}% | Confiança: {{ prop_data.analysis.confidence }}%</div>
+                            <div>{{ prop_data.analysis.analysis }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
+        {% endfor %}
     </div>
+
+    <script>
+        // Atualiza a página a cada 30 segundos
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    </script>
 </body>
 </html>
