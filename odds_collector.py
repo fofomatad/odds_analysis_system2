@@ -6,186 +6,200 @@ import time
 import logging
 
 class OddsCollector:
-    def __init__(self, update_interval=15):  # Reduzido para 15 segundos
+    def __init__(self, update_interval=15):
         self.update_interval = update_interval
         self.current_odds = pd.DataFrame()
         self.last_update = None
         self.running = False
         self.thread = None
         
-        # Configurar logging
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
     def start(self):
-        """Inicia a coleta de odds em uma thread separada"""
         if not self.running:
             self.running = True
             self.thread = threading.Thread(target=self._collection_loop)
             self.thread.daemon = True
             self.thread.start()
-            self.logger.info("Iniciou coleta de odds")
+            self.logger.info("Iniciou coleta de odds NBA")
 
     def stop(self):
-        """Para a coleta de odds"""
         self.running = False
         if self.thread:
             self.thread.join()
             self.logger.info("Parou coleta de odds")
 
     def _collection_loop(self):
-        """Loop principal de coleta"""
         while self.running:
             try:
                 self.collect_odds()
                 time.sleep(self.update_interval)
             except Exception as e:
                 self.logger.error(f"Erro na coleta: {str(e)}")
-                time.sleep(5)  # Espera um pouco antes de tentar novamente
+                time.sleep(5)
 
-    def _generate_sample_data(self):
-        """Gera dados de exemplo usando a estratégia Holzhauer"""
+    def valor_esperado(self, prob_acerto, odds):
+        """Calcula o valor esperado (EV) da aposta"""
+        ganho = (odds - 1)  # Ganho líquido se acertar
+        perda = -1  # Perda se errar
+        prob_erro = 1 - prob_acerto
+        return (prob_acerto * ganho) + (prob_erro * perda)
+
+    def criterio_kelly(self, prob_acerto, odds):
+        """Calcula a fração ideal de banca usando critério de Kelly"""
+        q = 1 - prob_acerto
+        b = odds - 1
+        f = (b * prob_acerto - q) / b
+        return max(0, min(0.05, round(f, 3)))  # Limitado a 5% da banca
+
+    def _generate_nba_games(self):
+        """Gera dados de exemplo para jogos da NBA"""
         games = [
             {
-                'home': 'Liverpool',
-                'away': 'Manchester City',
+                'home': 'Lakers',
+                'away': 'Warriors',
                 'start_time': datetime.now() + timedelta(minutes=30),
-                'league': 'Premier League',
-                'historical_h2h': '2W-1D-1L',
+                'home_form': '7-3',
+                'away_form': '6-4',
                 'market_movement': 'Subindo',
+                'key_players': 'LeBron (P), Curry (P)',
             },
             {
-                'home': 'Barcelona',
-                'away': 'Real Madrid',
+                'home': 'Celtics',
+                'away': 'Bucks',
                 'start_time': datetime.now() + timedelta(minutes=15),
-                'league': 'La Liga',
-                'historical_h2h': '3W-0D-2L',
+                'home_form': '8-2',
+                'away_form': '7-3',
                 'market_movement': 'Estável',
+                'key_players': 'Tatum (P), Giannis (P)',
             },
             {
-                'home': 'Bayern',
-                'away': 'Dortmund',
+                'home': 'Nets',
+                'away': 'Heat',
                 'start_time': datetime.now() + timedelta(minutes=5),
-                'league': 'Bundesliga',
-                'historical_h2h': '4W-1D-0L',
+                'home_form': '5-5',
+                'away_form': '6-4',
                 'market_movement': 'Descendo',
+                'key_players': 'Durant (D), Butler (P)',
             }
         ]
         
         data = []
         for game in games:
-            # Cálculo de odds usando a estratégia Holzhauer
-            base_prob = np.random.uniform(0.4, 0.6)
-            market_inefficiency = np.random.uniform(-0.1, 0.1)
+            # Probabilidades baseadas em forma e fatores
+            home_strength = int(game['home_form'].split('-')[0])
+            away_strength = int(game['away_form'].split('-')[0])
             
-            # Odds ajustadas com base na ineficiência do mercado
-            home_odds = round(1 / (base_prob + market_inefficiency), 2)
-            draw_odds = round(1 / (0.25 + market_inefficiency), 2)
-            away_odds = round(1 / (1 - base_prob + market_inefficiency), 2)
+            # Cálculo de probabilidade base
+            total_strength = home_strength + away_strength
+            base_prob = home_strength / total_strength
             
-            # Cálculo de valor esperado (EV)
-            true_prob = base_prob + (market_inefficiency * 0.5)
-            ev = (true_prob * home_odds) - 1
+            # Ajuste por fatores de mercado
+            market_adj = {
+                'Subindo': 0.05,
+                'Estável': 0,
+                'Descendo': -0.05
+            }.get(game['market_movement'], 0)
             
-            # Cálculo de confiança baseado em múltiplos fatores
+            # Probabilidade ajustada
+            prob_acerto = min(0.95, max(0.05, base_prob + market_adj))
+            
+            # Odds e valor esperado
+            odds = round(1 / prob_acerto, 2)
+            ev = self.valor_esperado(prob_acerto, odds)
+            
+            # Confiança baseada em múltiplos fatores
             confidence = self._calculate_confidence(
                 market_movement=game['market_movement'],
                 time_to_start=(game['start_time'] - datetime.now()).total_seconds() / 60,
-                h2h=game['historical_h2h']
+                form=game['home_form']
             )
+            
+            # Kelly stake
+            kelly = self.criterio_kelly(prob_acerto, odds)
             
             data.append({
                 'game': f"{game['home']} vs {game['away']}",
-                'league': game['league'],
                 'start_time': game['start_time'],
                 'time_to_start': f"{(game['start_time'] - datetime.now()).total_seconds() / 60:.0f} min",
-                'home_odds': home_odds,
-                'draw_odds': draw_odds,
-                'away_odds': away_odds,
-                'home_team': game['home'],
-                'away_team': game['away'],
+                'odds': odds,
+                'prob_acerto': f"{prob_acerto*100:.1f}%",
+                'home_form': game['home_form'],
+                'away_form': game['away_form'],
+                'key_players': game['key_players'],
                 'confidence': round(confidence, 1),
                 'value_bet': round(ev * 100, 1),
                 'market_movement': game['market_movement'],
-                'h2h': game['historical_h2h'],
-                'recommended_stake': self._calculate_stake(ev, confidence),
+                'kelly_stake': f"{kelly*100:.1f}%",
                 'bet_timing': self._get_bet_timing(game['start_time']),
-                'kelly_criterion': self._calculate_kelly(true_prob, home_odds)
+                'recommendation': self._get_recommendation(ev, confidence, kelly)
             })
         
         return data
 
-    def _calculate_confidence(self, market_movement, time_to_start, h2h):
-        """Calcula a confiança baseada na estratégia Holzhauer"""
+    def _calculate_confidence(self, market_movement, time_to_start, form):
+        """Calcula confiança baseada na estratégia Holzhauer para NBA"""
         base_confidence = 70
         
-        # Ajuste baseado no movimento do mercado
+        # Ajuste por movimento de mercado
         movement_adj = {
             'Subindo': 5,
             'Estável': 0,
             'Descendo': -5
         }.get(market_movement, 0)
         
-        # Ajuste baseado no tempo até o início
+        # Ajuste por timing
         time_adj = min(10, max(-10, (30 - time_to_start) / 3))
         
-        # Ajuste baseado no histórico H2H
-        wins = int(h2h[0])
-        h2h_adj = wins * 2
+        # Ajuste por forma recente
+        wins = int(form.split('-')[0])
+        form_adj = (wins - 5) * 2  # 5 vitórias é neutro
         
-        return min(95, max(60, base_confidence + movement_adj + time_adj + h2h_adj))
-
-    def _calculate_stake(self, ev, confidence):
-        """Calcula o stake recomendado (% do bankroll)"""
-        if ev <= 0 or confidence < 70:
-            return 0
-        base_stake = ev * (confidence / 100)
-        return min(5, max(1, round(base_stake * 100, 1)))
+        return min(95, max(60, base_confidence + movement_adj + time_adj + form_adj))
 
     def _get_bet_timing(self, start_time):
-        """Determina o melhor momento para apostar"""
+        """Timing Holzhauer para apostas NBA"""
         minutes_to_start = (start_time - datetime.now()).total_seconds() / 60
         
         if minutes_to_start <= 5:
-            return "APOSTAR AGORA! 🔥"
+            return "🔥 APOSTAR AGORA!"
         elif minutes_to_start <= 15:
-            return "Monitorar de perto 👀"
+            return "👀 Monitorar Lineup"
         else:
-            return "Aguardar ⏳"
+            return "⏳ Aguardar Informações"
 
-    def _calculate_kelly(self, prob, odds):
-        """Calcula o critério de Kelly para gestão de banca"""
-        q = 1 - prob
-        b = odds - 1
-        f = (b * prob - q) / b
-        return max(0, round(f * 100, 1))
+    def _get_recommendation(self, ev, confidence, kelly):
+        """Recomendação de aposta estilo Holzhauer"""
+        if ev <= 0 or confidence < 75 or kelly <= 0:
+            return "❌ Passar"
+        elif ev >= 0.1 and confidence >= 85 and kelly >= 0.03:
+            return "💰 Value Bet Forte"
+        else:
+            return "⚠️ Value Bet Moderado"
 
     def collect_odds(self):
-        """Coleta as odds e atualiza o estado interno"""
         try:
-            odds_data = self._generate_sample_data()
+            odds_data = self._generate_nba_games()
             self.current_odds = pd.DataFrame(odds_data)
             self.last_update = datetime.now()
-            self.logger.info(f"Coletou odds para {len(odds_data)} jogos")
+            self.logger.info(f"Coletou odds para {len(odds_data)} jogos NBA")
         except Exception as e:
             self.logger.error(f"Erro ao coletar odds: {str(e)}")
 
     def get_live_games(self):
-        """Retorna os jogos ativos com suas odds"""
         if self.current_odds.empty:
             return []
-        
         return self.current_odds.to_dict('records')
 
     def get_opportunities(self, confidence_threshold=75, value_threshold=3):
-        """Retorna oportunidades de apostas baseadas nos critérios Holzhauer"""
         if self.current_odds.empty:
             return []
         
         opportunities = self.current_odds[
             (self.current_odds['confidence'] >= confidence_threshold) &
             (self.current_odds['value_bet'] >= value_threshold) &
-            (self.current_odds['bet_timing'] == "APOSTAR AGORA! 🔥")
+            (self.current_odds['bet_timing'] == "🔥 APOSTAR AGORA!")
         ]
         
         return opportunities.to_dict('records')
