@@ -2,9 +2,101 @@
 <html>
 <head>
     <title>Odds Analysis System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .opportunity {
+            border-left: 4px solid #4CAF50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Odds Analysis System</h1>
-    <p>Sistema em funcionamento!</p>
+    <div class="container">
+        <div class="header">
+            <h1>Odds Analysis System</h1>
+            <p>Sistema de Análise de Odds em Tempo Real</p>
+        </div>
+
+        <div class="card">
+            <h2>Jogos ao Vivo</h2>
+            <table>
+                <tr>
+                    <th>Jogo</th>
+                    <th>Casa</th>
+                    <th>Empate</th>
+                    <th>Fora</th>
+                    <th>Confiança</th>
+                    <th>Valor</th>
+                </tr>
+                {% for game in games %}
+                <tr>
+                    <td>{{ game.game }}</td>
+                    <td>{{ game.home_odds }}</td>
+                    <td>{{ game.draw_odds }}</td>
+                    <td>{{ game.away_odds }}</td>
+                    <td>{{ game.confidence }}%</td>
+                    <td>{{ game.value_bet }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="card opportunity">
+            <h2>Oportunidades de Apostas</h2>
+            <table>
+                <tr>
+                    <th>Jogo</th>
+                    <th>Casa</th>
+                    <th>Empate</th>
+                    <th>Fora</th>
+                    <th>Confiança</th>
+                    <th>Valor</th>
+                </tr>
+                {% for opp in opportunities %}
+                <tr>
+                    <td>{{ opp.game }}</td>
+                    <td>{{ opp.home_odds }}</td>
+                    <td>{{ opp.draw_odds }}</td>
+                    <td>{{ opp.away_odds }}</td>
+                    <td>{{ opp.confidence }}%</td>
+                    <td>{{ opp.value_bet }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 </body>
 </html>
